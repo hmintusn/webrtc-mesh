@@ -6,8 +6,8 @@
 3. Hoàng Minh Tuấn - B21DCVT444
 
 ## Description:
-- Can message from 1 to 1 or in a group
-- ...
+- Available for message from 1 to 1 or in a group.
+- Available for video call/voice chat.
 
 ## Technology:
 - Java
