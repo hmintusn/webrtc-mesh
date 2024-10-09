@@ -10,7 +10,7 @@
 - Available for video call/voice chat.
 
 ## Technology:
-- Java
+- Java (Spring Boot)
 - WebSocket
 - Database: NoSQL
 - ...
