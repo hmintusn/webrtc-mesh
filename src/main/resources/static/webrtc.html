@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC SFU</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="peerId"></div>
+<div id="control-panel">
+    <button onclick="startStream()">Start Video</button>
+    <button onclick="stopStream()">Stop Video</button>
+</div>
+<video id="localVideo" autoplay playsinline></video>
+<div id="remoteVideos"></div>
+<script src="./webrtc.js"></script>
+</body>
+</html>
