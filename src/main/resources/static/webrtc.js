@@ -8,6 +8,7 @@ const peerId = sessionStorage.getItem('peerId') || 'peer-' + Math.floor(Math.ran
 sessionStorage.setItem('peerId', peerId);
 document.getElementById('peerId').textContent = `Your Peer ID: ${peerId}`;
 
+// WebSocket signaling server
 const signalingServer = new WebSocket("ws://localhost:8080/ws");
 
 signalingServer.onmessage = function(message) {
@@ -15,17 +16,17 @@ signalingServer.onmessage = function(message) {
 
     switch(data.type) {
         case "user-joined":
-            // Khi có peer mới tham gia, tạo offer cho peer đó
+            // When a new peer joins, create an offer for that peer
             if (data.peerId !== peerId) {
                 createAndSendOffer(data.peerId);
             }
             break;
         case "user-left":
-            // Khi peer ngắt kết nối
+            // When a peer disconnects
             if (peerConnections[data.peerId]) {
                 peerConnections[data.peerId].close();
                 delete peerConnections[data.peerId];
-                // Xóa video element của peer đã ngắt kết nối
+                // Remove the video element of the disconnected peer
                 const videoContainer = document.querySelector(`[data-peer-id="${data.peerId}"]`);
                 if (videoContainer) {
                     videoContainer.remove();
@@ -51,7 +52,7 @@ async function startStream() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localVideo.srcObject = localStream;
-        // Thông báo cho server biết peer đã sẵn sàng
+        // Notify server that the peer is ready
         signalingServer.send(JSON.stringify({
             type: "join",
             peerId: peerId
@@ -66,12 +67,12 @@ function stopStream() {
     if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
         localVideo.srcObject = null;
-        // Đóng tất cả peer connections
+        // Close all peer connections
         Object.values(peerConnections).forEach(pc => pc.close());
         peerConnections = {};
-        // Xóa tất cả remote videos
+        // Remove all remote videos
         remoteVideos.innerHTML = '';
-        // Thông báo cho server
+        // Notify the server
         signalingServer.send(JSON.stringify({
             type: "leave",
             peerId: peerId
@@ -127,7 +128,7 @@ function handleCandidate(data) {
 }
 
 function createPeerConnection(id) {
-    // Thêm STUN servers để hỗ trợ NAT traversal
+    // Use STUN servers to assist with NAT traversal
     const configuration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -139,22 +140,30 @@ function createPeerConnection(id) {
     peerConnections[id] = peerConnection;
 
     peerConnection.ontrack = event => {
-        const videoContainer = document.createElement('div');
-        videoContainer.className = 'videoContainer';
-        videoContainer.setAttribute('data-peer-id', id);
+        // Check if a video container for this peer already exists
+        let videoContainer = document.querySelector(`[data-peer-id="${id}"]`);
+        if (!videoContainer) {
+            videoContainer = document.createElement('div');
+            videoContainer.className = 'videoContainer';
+            videoContainer.setAttribute('data-peer-id', id);
 
-        const label = document.createElement('p');
-        label.textContent = `Peer ID: ${id}`;
-        label.style.textAlign = 'center';
+            const label = document.createElement('p');
+            label.textContent = `Peer ID: ${id}`;
+            label.style.textAlign = 'center';
 
-        const video = document.createElement('video');
-        video.srcObject = event.streams[0];
-        video.autoplay = true;
-        video.playsinline = true;
+            const video = document.createElement('video');
+            video.srcObject = event.streams[0];
+            video.autoplay = true;
+            video.playsinline = true;
 
-        videoContainer.appendChild(label);
-        videoContainer.appendChild(video);
-        remoteVideos.appendChild(videoContainer);
+            videoContainer.appendChild(label);
+            videoContainer.appendChild(video);
+            remoteVideos.appendChild(videoContainer);
+        } else {
+            // If container exists, update the video stream
+            const video = videoContainer.querySelector('video');
+            video.srcObject = event.streams[0];
+        }
     };
 
     peerConnection.onicecandidate = event => {
@@ -168,7 +177,7 @@ function createPeerConnection(id) {
         }
     };
 
-    // Thêm local tracks vào peer connection
+    // Add local tracks to peer connection
     if (localStream) {
         localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
     }
@@ -176,7 +185,7 @@ function createPeerConnection(id) {
     return peerConnection;
 }
 
-// Xử lý khi window đóng
+// Handle window close event
 window.onbeforeunload = function() {
     stopStream();
 };
