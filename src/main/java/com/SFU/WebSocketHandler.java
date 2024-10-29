@@ -1,6 +1,9 @@
 package com.SFU;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -10,6 +13,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class WebSocketHandler extends TextWebSocketHandler {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -19,12 +23,14 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         sessions.put(session.getId(), session);
+        log.info("Connection established with session ID: {}", session.getId());
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
+        log.info("Received message from session ID {}: {}", session.getId(), message.getPayload());
         WebSocketMessage msg = objectMapper.readValue(message.getPayload(), WebSocketMessage.class);
-
+        log.debug("Parsed message type: {}", msg.getType());
         switch (msg.getType()) {
             case "join":
                 handleJoinMessage(session, msg);
@@ -37,6 +43,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
             case "candidate":
                 forwardMessage(msg);
                 break;
+            default:
+                log.warn("Unknown message type received: {}", msg.getType());
         }
     }
 
@@ -44,6 +52,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         // Store the mapping between session and peerId
         sessionToPeerId.put(session.getId(), msg.getPeerId());
         peerIdToSession.put(msg.getPeerId(), session.getId());
+        log.info("User joined with peer ID: {}", msg.getPeerId());
 
         // Notify all other peers about the new peer
         WebSocketMessage joinMsg = new WebSocketMessage();
@@ -56,11 +65,13 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 ws.sendMessage(new TextMessage(joinMsgString));
             }
         }
+        log.info("Broadcasted 'user-joined' message for peer ID: {}", msg.getPeerId());
     }
 
     private void handleLeaveMessage(WebSocketSession session, WebSocketMessage msg) throws IOException {
         String peerId = sessionToPeerId.get(session.getId());
         if (peerId != null) {
+            log.info("User leaving with peer ID: {}", peerId);
             // Notify all other peers about the leaving peer
             WebSocketMessage leaveMsg = new WebSocketMessage();
             leaveMsg.setType("user-left");
@@ -72,6 +83,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
                     ws.sendMessage(new TextMessage(leaveMsgString));
                 }
             }
+            log.info("Broadcasted 'user-left' message for peer ID: {}", peerId);
         }
     }
 
@@ -82,7 +94,12 @@ public class WebSocketHandler extends TextWebSocketHandler {
             WebSocketSession targetSession = sessions.get(targetSessionId);
             if (targetSession != null && targetSession.isOpen()) {
                 targetSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(msg)));
+                log.info("Forwarded message from {} to {}", msg.getFrom(), msg.getTo());
+            } else {
+                log.warn("Target session {} is not open or does not exist", targetSessionId);
             }
+        } else {
+            log.warn("No target session found for peer ID: {}", msg.getTo());
         }
     }
 
@@ -93,6 +110,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
             // Clean up mappings
             sessionToPeerId.remove(session.getId());
             peerIdToSession.remove(peerId);
+            log.info("Connection closed for peer ID: {}", peerId);
 
             // Notify others about peer leaving
             WebSocketMessage leaveMsg = new WebSocketMessage();
@@ -105,6 +123,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
                     ws.sendMessage(new TextMessage(leaveMsgString));
                 }
             }
+            log.info("Broadcasted 'user-left' message for peer ID: {}", peerId);
         }
 
         sessions.remove(session.getId());
@@ -112,6 +131,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
-        System.err.println("Transport error: " + exception.getMessage());
+        log.error("Transport error in session {}: {}", session.getId(), exception.getMessage(), exception);
     }
 }
