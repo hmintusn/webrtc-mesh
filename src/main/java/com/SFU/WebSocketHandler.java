@@ -12,6 +12,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 public class WebSocketHandler extends TextWebSocketHandler {
@@ -19,6 +21,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
     private static final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
     private static final Map<String, String> sessionToPeerId = new ConcurrentHashMap<>();
     private static final Map<String, String> peerIdToSession = new ConcurrentHashMap<>();
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -28,7 +31,8 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
-        log.info("Received message from session ID {}: {}", session.getId(), message.getPayload());
+        log.info("Received message from session ID {}", session.getId());
+        
         WebSocketMessage msg = objectMapper.readValue(message.getPayload(), WebSocketMessage.class);
         log.debug("Parsed message type: {}", msg.getType());
         switch (msg.getType()) {
@@ -62,7 +66,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         String joinMsgString = objectMapper.writeValueAsString(joinMsg);
         for (WebSocketSession ws : sessions.values()) {
             if (!ws.getId().equals(session.getId())) {
-                ws.sendMessage(new TextMessage(joinMsgString));
+                asyncSendMessage(ws, new TextMessage(joinMsgString));
             }
         }
         log.info("Broadcasted 'user-joined' message for peer ID: {}", msg.getPeerId());
@@ -72,7 +76,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         String peerId = sessionToPeerId.get(session.getId());
         if (peerId != null) {
             log.info("User leaving with peer ID: {}", peerId);
-            // Notify all other peers about the leaving peer
+
             WebSocketMessage leaveMsg = new WebSocketMessage();
             leaveMsg.setType("user-left");
             leaveMsg.setPeerId(peerId);
@@ -80,7 +84,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
             String leaveMsgString = objectMapper.writeValueAsString(leaveMsg);
             for (WebSocketSession ws : sessions.values()) {
                 if (!ws.getId().equals(session.getId())) {
-                    ws.sendMessage(new TextMessage(leaveMsgString));
+                    asyncSendMessage(ws, new TextMessage(leaveMsgString));
                 }
             }
             log.info("Broadcasted 'user-left' message for peer ID: {}", peerId);
@@ -93,13 +97,31 @@ public class WebSocketHandler extends TextWebSocketHandler {
         if (targetSessionId != null) {
             WebSocketSession targetSession = sessions.get(targetSessionId);
             if (targetSession != null && targetSession.isOpen()) {
-                targetSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(msg)));
+                asyncSendMessage(targetSession, new TextMessage(objectMapper.writeValueAsString(msg)));
                 log.info("Forwarded message from {} to {}", msg.getFrom(), msg.getTo());
             } else {
                 log.warn("Target session {} is not open or does not exist", targetSessionId);
             }
         } else {
             log.warn("No target session found for peer ID: {}", msg.getTo());
+        }
+    }
+
+    private void asyncSendMessage(WebSocketSession session, TextMessage message) {
+        executorService.submit(() -> {
+            try {
+                synchronizedSendMessage(session, message);
+            } catch (IOException e) {
+                log.error("Failed to send message asynchronously", e);
+            }
+        });
+    }
+
+    private void synchronizedSendMessage(WebSocketSession session, TextMessage message) throws IOException {
+        synchronized (session) {
+            if (session.isOpen()) {
+                session.sendMessage(message);
+            }
         }
     }
 
@@ -119,7 +141,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
             String leaveMsgString = objectMapper.writeValueAsString(leaveMsg);
             for (WebSocketSession ws : sessions.values()) {
                 if (!ws.getId().equals(session.getId()) && ws.isOpen()) {
-                    ws.sendMessage(new TextMessage(leaveMsgString));
+                    asyncSendMessage(ws, new TextMessage(leaveMsgString));
                 }
             }
             log.info("Broadcasted 'user-left' message for peer ID: {}", peerId);
@@ -131,5 +153,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
         log.error("Transport error in session {}: {}", session.getId(), exception.getMessage(), exception);
+    }
+
+    // Clean up executor service on shutdown
+    public void shutdown() {
+        executorService.shutdown();
     }
 }
