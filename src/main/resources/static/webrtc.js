@@ -12,10 +12,10 @@ document.getElementById('peerId').textContent = `Your Peer ID: ${peerId}`;
 const LOCAL_IP_ADDRESS = "10.24.13.122";
 const signalingServer = new WebSocket(`ws://${LOCAL_IP_ADDRESS}:8080/ws`);
 
-signalingServer.onmessage = function(message) {
+signalingServer.onmessage = function (message) {
     const data = JSON.parse(message.data);
 
-    switch(data.type) {
+    switch (data.type) {
         case "user-joined":
             // When a new peer joins, create an offer for that peer
             if (data.peerId !== peerId) {
@@ -53,6 +53,9 @@ async function startStream() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localVideo.srcObject = localStream;
+        Object.values(peerConnections).forEach(pc => {
+            localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        });
         // Notify server that the peer is ready
         signalingServer.send(JSON.stringify({
             type: "join",
@@ -187,6 +190,6 @@ function createPeerConnection(id) {
 }
 
 // Handle window close event
-window.onbeforeunload = function() {
+window.onbeforeunload = function () {
     stopStream();
 };
