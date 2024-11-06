@@ -107,7 +107,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws IOException {
         String peerId = sessionToPeerId.get(session.getId());
         if (peerId != null) {
-            // Clean up mappings
             sessionToPeerId.remove(session.getId());
             peerIdToSession.remove(peerId);
             log.info("Connection closed for peer ID: {}", peerId);
