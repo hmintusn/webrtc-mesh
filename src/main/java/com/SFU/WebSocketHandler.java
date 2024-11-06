@@ -1,9 +1,6 @@
 package com.SFU;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -15,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Slf4j
 public class WebSocketHandler extends TextWebSocketHandler {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -26,7 +22,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         sessions.put(session.getId(), session);
-        log.info("Connection established with session ID: {}", session.getId());
     }
 
     @Override
@@ -34,7 +29,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.info("Received message from session ID {}", session.getId());
         
         WebSocketMessage msg = objectMapper.readValue(message.getPayload(), WebSocketMessage.class);
-        log.debug("Parsed message type: {}", msg.getType());
+
         switch (msg.getType()) {
             case "join":
                 handleJoinMessage(session, msg);
@@ -47,8 +42,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
             case "candidate":
                 forwardMessage(msg);
                 break;
-            default:
-                log.warn("Unknown message type received: {}", msg.getType());
         }
     }
 
@@ -56,7 +49,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
         // Store the mapping between session and peerId
         sessionToPeerId.put(session.getId(), msg.getPeerId());
         peerIdToSession.put(msg.getPeerId(), session.getId());
-        log.info("User joined with peer ID: {}", msg.getPeerId());
 
         // Notify all other peers about the new peer
         WebSocketMessage joinMsg = new WebSocketMessage();
@@ -69,7 +61,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 asyncSendMessage(ws, new TextMessage(joinMsgString));
             }
         }
-        log.info("Broadcasted 'user-joined' message for peer ID: {}", msg.getPeerId());
     }
 
     private void handleLeaveMessage(WebSocketSession session, WebSocketMessage msg) throws IOException {
@@ -87,7 +78,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
                     asyncSendMessage(ws, new TextMessage(leaveMsgString));
                 }
             }
-            log.info("Broadcasted 'user-left' message for peer ID: {}", peerId);
         }
     }
 
@@ -102,8 +92,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
             } else {
                 log.warn("Target session {} is not open or does not exist", targetSessionId);
             }
-        } else {
-            log.warn("No target session found for peer ID: {}", msg.getTo());
         }
     }
 
@@ -131,7 +119,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
         if (peerId != null) {
             sessionToPeerId.remove(session.getId());
             peerIdToSession.remove(peerId);
-            log.info("Connection closed for peer ID: {}", peerId);
 
             // Notify others about peer leaving
             WebSocketMessage leaveMsg = new WebSocketMessage();
@@ -144,7 +131,6 @@ public class WebSocketHandler extends TextWebSocketHandler {
                     asyncSendMessage(ws, new TextMessage(leaveMsgString));
                 }
             }
-            log.info("Broadcasted 'user-left' message for peer ID: {}", peerId);
         }
 
         sessions.remove(session.getId());
@@ -152,7 +138,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
-        log.error("Transport error in session {}: {}", session.getId(), exception.getMessage(), exception);
+        System.err.println("Transport error: " + exception.getMessage());
     }
 
     // Clean up executor service on shutdown
