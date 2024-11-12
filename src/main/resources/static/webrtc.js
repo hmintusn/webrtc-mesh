@@ -9,8 +9,11 @@ sessionStorage.setItem('peerId', peerId);
 document.getElementById('peerId').textContent = `Your Peer ID: ${peerId}`;
 
 // WebSocket signaling server
-const LOCAL_IP_ADDRESS = "10.24.13.122";
-const signalingServer = new WebSocket(`ws://${LOCAL_IP_ADDRESS}:8080/ws`);
+// const LOCAL_IP_ADDRESS = "localhost";
+// const signalingServer = new WebSocket(`ws://${LOCAL_IP_ADDRESS}:8080/ws`);
+
+const LOCAL_IP_ADDRESS = "192.168.1.5";
+const signalingServer = new WebSocket(`wss://${LOCAL_IP_ADDRESS}/ws`);
 
 signalingServer.onmessage = function (message) {
     const data = JSON.parse(message.data);
