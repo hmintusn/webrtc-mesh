@@ -14,6 +14,47 @@
 - WebSocket
 - WebRTC with Mesh architecture
 
+## Setup Instructions
+
+### 1. Generate SSL Certificates
+
+First, create SSL certificates using Git Bash. Follow these steps:
+
+1. Create an SSL directory in your project root:
+```bash
+mkdir ssl
+```
+
+2. Generate SSL certificates using OpenSSL (replace `<YOUR_LOCAL_IP>` with your computer's local IP, e.g., 10.24.9.200):
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+-keyout ssl/private_key.pem \
+-out ssl/certificate.pem \
+-subj "//C=US//ST=California//L=San Francisco//O=MyOrganization//OU=MyDepartment//CN=<YOUR_LOCAL_IP>"
+```
+
+### 2. Configure NGINX
+
+Update the `nginx.conf` file:
+1. Locate your `nginx.conf` file
+2. Replace all instances of `10.24.9.200` with your local IP address
+
+### 3. Update Client Configuration
+
+Modify the WebRTC client configuration:
+
+1. Navigate to: `src/main/resources/static/webrtc.js`
+2. Update the following variables with your local IP address:
+```javascript
+const LOCAL_IP_ADDRESS = "10.24.9.200";
+const signalingServer = new WebSocket(`wss://${LOCAL_IP_ADDRESS}/ws`);
+```
+
+### Important Notes
+- You must use your computer's actual local IP address throughout the configuration
+- All IP addresses (in SSL certificates, NGINX config, and client code) must match
+- The SSL certificates will be valid for 365 days
+
 ## WebRTC Background Research
 
 ### 1. WebRTC (Web Real-Time Communication)
@@ -37,6 +78,7 @@ WebRTC consists of three main parts:
     * Codecs
     * Bandwidth information
     * Public IP addresses and ports
+      ![image](https://github.com/user-attachments/assets/4fe8b509-e4fe-436d-b4bd-9fceeed0d112)
 
 #### Network Components
 
@@ -54,12 +96,12 @@ WebRTC consists of three main parts:
      * Detects NAT type in use
      * Provides public IP address for peer communication
      * Handles "Symmetric NAT" cases where routers only accept previously connected peers
-     * ![image](https://github.com/user-attachments/assets/5d5c5f8d-d397-4701-ace7-7165eee50e21)
+       ![image](https://github.com/user-attachments/assets/5d5c5f8d-d397-4701-ace7-7165eee50e21)
 
   2. **TURN (Traversal Using Relays Around NATs)**:
      * Functions as relay servers for failed P2P connections
      * Maintains media relay between WebRTC peers
-     * ![image](https://github.com/user-attachments/assets/0c23dcfe-b577-4b45-a34f-4fc055e4a4f9)
+       ![image](https://github.com/user-attachments/assets/0c23dcfe-b577-4b45-a34f-4fc055e4a4f9)
 
 
 #### Technical Components
@@ -89,6 +131,7 @@ Three main APIs handle core functionality:
 
 ### 2. WebRTC Mesh Architecture
 
+![image](https://github.com/user-attachments/assets/3642bb69-488d-41d5-a806-3cf9325cd653)
 #### Advantages
 1. **Cost Efficiency**:
    * No media servers required
@@ -113,6 +156,7 @@ Three main APIs handle core functionality:
      
 ## Future Development
 ### SFU (Selective Forwarding Unit)
+![image](https://github.com/user-attachments/assets/2307cab5-f2e9-4d45-acbd-fe56cc31ab80)
 
 A **video conferencing architecture** that optimizes data transmission between server and endpoints through the following process:
 
