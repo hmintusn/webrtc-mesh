@@ -78,7 +78,8 @@ WebRTC consists of three main parts:
     * Codecs
     * Bandwidth information
     * Public IP addresses and ports
-      ![image](https://github.com/user-attachments/assets/4fe8b509-e4fe-436d-b4bd-9fceeed0d112)
+
+![WebRTC Signaling](https://github.com/user-attachments/assets/4fe8b509-e4fe-436d-b4bd-9fceeed0d112)
 
 #### Network Components
 
@@ -96,13 +97,14 @@ WebRTC consists of three main parts:
      * Detects NAT type in use
      * Provides public IP address for peer communication
      * Handles "Symmetric NAT" cases where routers only accept previously connected peers
-       ![image](https://github.com/user-attachments/assets/5d5c5f8d-d397-4701-ace7-7165eee50e21)
+
+![STUN Server](https://github.com/user-attachments/assets/5d5c5f8d-d397-4701-ace7-7165eee50e21)
 
   2. **TURN (Traversal Using Relays Around NATs)**:
      * Functions as relay servers for failed P2P connections
      * Maintains media relay between WebRTC peers
-       ![image](https://github.com/user-attachments/assets/0c23dcfe-b577-4b45-a34f-4fc055e4a4f9)
 
+![TURN Server](https://github.com/user-attachments/assets/0c23dcfe-b577-4b45-a34f-4fc055e4a4f9)
 
 #### Technical Components
 
@@ -131,7 +133,8 @@ Three main APIs handle core functionality:
 
 ### 2. WebRTC Mesh Architecture
 
-![image](https://github.com/user-attachments/assets/3642bb69-488d-41d5-a806-3cf9325cd653)
+![Mesh Architecture](https://github.com/user-attachments/assets/3642bb69-488d-41d5-a806-3cf9325cd653)
+
 #### Advantages
 1. **Cost Efficiency**:
    * No media servers required
@@ -156,7 +159,8 @@ Three main APIs handle core functionality:
      
 ## Future Development
 ### SFU (Selective Forwarding Unit)
-![image](https://github.com/user-attachments/assets/2307cab5-f2e9-4d45-acbd-fe56cc31ab80)
+
+![SFU Architecture](https://github.com/user-attachments/assets/2307cab5-f2e9-4d45-acbd-fe56cc31ab80)
 
 A **video conferencing architecture** that optimizes data transmission between server and endpoints through the following process:
 
