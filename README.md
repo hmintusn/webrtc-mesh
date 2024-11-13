@@ -54,10 +54,13 @@ WebRTC consists of three main parts:
      * Detects NAT type in use
      * Provides public IP address for peer communication
      * Handles "Symmetric NAT" cases where routers only accept previously connected peers
+     * ![image](https://github.com/user-attachments/assets/5d5c5f8d-d397-4701-ace7-7165eee50e21)
 
   2. **TURN (Traversal Using Relays Around NATs)**:
      * Functions as relay servers for failed P2P connections
      * Maintains media relay between WebRTC peers
+     * ![image](https://github.com/user-attachments/assets/0c23dcfe-b577-4b45-a34f-4fc055e4a4f9)
+
 
 #### Technical Components
 
@@ -109,3 +112,18 @@ Three main APIs handle core functionality:
    * Performance and user experience challenges
      
 ## Future Development
+### SFU (Selective Forwarding Unit)
+
+A **video conferencing architecture** that optimizes data transmission between server and endpoints through the following process:
+
+#### Data Flow Process
+1. Server receives incoming video streams from all endpoints
+2. Server distributes uncompressed video streams to each endpoint
+3. Endpoints merge incoming video streams from other participants
+
+#### Key Characteristics
+* Stream centralization through server-based distribution
+* Each participant:
+  * Sends single outgoing signal
+  * Receives multiple streams from other users via server
+  * Reduces individual endpoint processing load
